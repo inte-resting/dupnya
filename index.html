@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>덥냐?</title>
+<style>
+  :root{
+    --ink:#0E1116; --hot:#E2510B; --hotT:#FFE7C4;
+    --cold:#12395E; --coldT:#CFEAFF;
+    --korHot:#F2A31B; --korCold:#8FBFD9; --dark:#12151A;
+    --kr:'Apple SD Gothic Neo','Pretendard','Noto Sans KR','Malgun Gothic',sans-serif;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--ink);font-family:var(--kr);-webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent}
+  #app{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}
+  .screen{scroll-snap-align:start;height:100dvh;display:flex;flex-direction:column}
+  /* 가로로 넓은 화면에서는 좌우로 나눕니다 */
+  @media (min-aspect-ratio:1/1){ .screen{flex-direction:row} }
+  .half{flex:1;display:flex;flex-direction:column;justify-content:center;
+    padding:0 22px;position:relative;overflow:hidden}
+
+  .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    font-size:13px;opacity:.85;margin-bottom:14px;padding-right:58px}
+  .top b{font-family:var(--mono);font-size:10.5px;font-weight:400;opacity:.75;white-space:nowrap}
+  .city{font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .temp{font-size:clamp(48px,15vw,84px);font-weight:800;line-height:.95;
+    letter-spacing:-.05em;font-variant-numeric:tabular-nums;margin-top:2px}
+  .temp span{font-size:.32em;font-weight:600;letter-spacing:-.02em;margin-left:5px}
+  .quip{font-size:15px;margin-top:10px;opacity:.9}
+  .meta{display:flex;align-items:center;gap:8px;margin-top:10px;
+    font-family:var(--mono);font-size:11.5px;opacity:.8}
+  .pick{font:inherit;color:inherit;background:none;border:0;cursor:pointer;
+    display:inline-flex;align-items:center;padding:12px 2px}
+  .pick u{display:inline-flex;align-items:center;gap:4px;text-decoration:none;
+    border-bottom:1px dashed currentColor;padding-bottom:2px}
+  .pick em{font-style:normal;font-size:9px;opacity:.7}
+
+  .scale{position:absolute;right:16px;top:14%;bottom:14%;width:30px}
+  .scale i{position:absolute;left:23px;top:0;bottom:0;width:1px;background:currentColor;opacity:.3}
+  .tick{position:absolute;right:0;transform:translateY(-50%);display:flex;align-items:center;gap:4px}
+  .tick b{font-family:var(--mono);font-size:7.5px;font-weight:400;opacity:.5}
+  .tick u{width:6px;height:1px;background:currentColor;opacity:.4;text-decoration:none}
+  .mark{position:absolute;right:0;transform:translateY(-50%);width:29px;height:2px;background:currentColor}
+
+  .hint{position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:18px;
+    opacity:.5;animation:bob 2.2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+  .credit{position:absolute;left:22px;right:22px;bottom:10px;font-family:var(--mono);
+    font-size:9.5px;opacity:.55}
+  .credit a{color:inherit}
+
+  #sheet{position:fixed;inset:0;z-index:20;display:none}
+  #sheet.on{display:block}
+  #sheet .bg{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+  #sheet .box{position:absolute;left:0;right:0;bottom:0;max-height:78dvh;overflow-y:auto;
+    background:#171B21;color:#E6E9EE;border-radius:18px 18px 0 0;
+    padding:20px 0 max(20px,env(safe-area-inset-bottom))}
+  #sheet h2{font-size:17px;font-weight:700;padding:0 20px 14px}
+  #sheet .grp{font-family:var(--mono);font-size:11px;opacity:.5;padding:16px 20px 6px}
+  #sheet button.opt{display:flex;justify-content:space-between;align-items:center;width:100%;
+    background:none;border:0;color:inherit;font:inherit;font-size:16px;text-align:left;
+    padding:0 20px;min-height:46px;cursor:pointer}
+  #sheet button.opt:active{background:#222831}
+  #sheet button.opt b{color:#F2A31B;font-weight:400}
+  #sheet details>summary{list-style:none;cursor:pointer;font-size:16px;padding:0 20px;
+    min-height:46px;display:flex;align-items:center;justify-content:space-between;opacity:.9}
+  #sheet details>summary::-webkit-details-marker{display:none}
+  #sheet details>summary::after{content:'⌄';opacity:.5}
+  #sheet details[open]>summary::after{content:'⌃'}
+
+  #banner{position:fixed;top:0;left:0;right:0;z-index:10;background:#2A2118;color:#E0B96A;
+    font-family:var(--mono);font-size:10.5px;text-align:center;padding:5px 8px;display:none}
+  .load{height:100dvh;display:flex;align-items:center;justify-content:center;color:#E6E9EE;font-size:17px}
+  @media (prefers-reduced-motion:reduce){.hint{animation:none}}
+</style>
+</head>
+<body>
+<div id="banner">지금은 저장해둔 값을 띄우는 중입니다</div>
+<div id="app"><div class="load">전 세계를 뒤지는 중</div></div>
+<div id="sheet"><div class="bg"></div><div class="box"><h2>누구랑 비교할까요?</h2><div id="opts"></div></div></div>
+
+<script>
+/* ────────────────────────────────────────────────────────────
+   덥냐?  —  화면 두 장. 지구 한 장, 한국 한 장. 그게 전부.
+   기온은 GitHub Actions가 만들어둔 data.json에서만 읽습니다.
+   기준 도시는 대구. 이 앱의 온도 원기(原器)입니다.
+   ──────────────────────────────────────────────────────────── */
+
+/* ▼▼ 여기만 본인 저장소로 ▼▼ */
+var DATA_URL = './data.json';
+/* ▲▲ 같은 저장소에 앱을 올렸다면 './data.json' 도 됩니다 ▲▲ */
+
+var POLL_MS = 5*60*1000, BASE_DEFAULT = '대구';
+
+var OVERSEAS = [
+["아시아",["도쿄, 일본","베이징, 중국","상하이, 중국","홍콩","타이베이, 대만","방콕, 태국",
+  "싱가포르","하노이, 베트남","마닐라, 필리핀","자카르타, 인도네시아","델리, 인도","두바이, UAE","울란바토르, 몽골"]],
+["유럽",["런던, 영국","파리, 프랑스","베를린, 독일","로마, 이탈리아","마드리드, 스페인",
+  "이스탄불, 튀르키예","모스크바, 러시아","스톡홀름, 스웨덴","레이캬비크, 아이슬란드"]],
+["북미",["뉴욕, 미국","로스앤젤레스, 미국","시카고, 미국","라스베이거스, 미국","토론토, 캐나다",
+  "밴쿠버, 캐나다","호놀룰루, 미국","앵커리지, 미국","멕시코시티, 멕시코"]],
+["그 외",["시드니, 호주","멜버른, 호주","오클랜드, 뉴질랜드","상파울루, 브라질",
+  "부에노스아이레스, 아르헨티나","카이로, 이집트","나이로비, 케냐","케이프타운, 남아공","라고스, 나이지리아"]]
+];
+
+var KOR_HOT_QUIP = {'대구':'역시 대구','서울':'드문 일입니다','제주':'섬인데요','포항':'바다 옆인데요'};
+var KOR_COLD_QUIP = {'대관령':'','태백':'','울릉도':'섬이라 그렇습니다'};
+
+var SAMPLE = {
+  at:new Date().toISOString(),
+  world:[["쿠웨이트시티, 쿠웨이트",47.2],["바스라, 이라크",46.4],["라린코나다, 페루",-4.6],
+         ["우수아이아, 아르헨티나",-1.2],["도쿄, 일본",31.5]],
+  korea:[["대구",36.7],["서울",33.1],["대관령",19.1],["태백",20.4],["부산",31.8]]
+};
+
+function maxOf(r){return r.reduce(function(a,b){return b[1]>a[1]?b:a;});}
+function minOf(r){return r.reduce(function(a,b){return b[1]<a[1]?b:a;});}
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem('dupnya:'+k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem('dupnya:'+k, JSON.stringify(v)); }catch(e){} }
+function keepThrone(slot, city){
+  var prev = lsGet(slot);
+  if(prev && prev.city === city) return prev.since;
+  var since = Date.now();
+  lsSet(slot, {city:city, since:since});
+  return since;
+}
+function elapsed(since){
+  var s = Math.max(0, Math.floor((Date.now()-since)/1000));
+  if(s < 60) return s + '초째';
+  var m = Math.floor(s/60);
+  if(m < 60) return m + '분째';
+  var h = Math.floor(m/60);
+  return h < 24 ? h + '시간째' : Math.floor(h/24) + '일째';
+}
+function fmt(t){ return t >= 0 ? t.toFixed(1) : '−' + Math.abs(t).toFixed(1); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function shortName(n){ return n.split(',')[0]; }
+
+var data = null, live = false;
+var base = lsGet('base') || BASE_DEFAULT;
+
+/* ── 화면 ───────────────────────────────────────────────── */
+function scale(temp){
+  var pos = Math.min(100, Math.max(0, ((60-temp)/120)*100));
+  var ticks = [60,30,0,-30,-60].map(function(v){
+    return '<div class="tick" style="top:'+(((60-v)/120)*100)+'%"><b>'+v+'</b><u></u></div>';
+  }).join('');
+  return '<div class="scale" aria-hidden="true"><i></i>'+ticks+
+         '<div class="mark" style="top:'+pos+'%"></div></div>';
+}
+function half(o){
+  var right;
+  if(o.city === base){
+    right = '본인입니다';
+  }else{
+    var d = o.temp - o.baseTemp;
+    right = '보다 ' + Math.abs(d).toFixed(1) + '°C ' + (d >= 0 ? '더 더움' : '더 추움');
+  }
+  return '<div class="half" style="background:'+o.bg+';color:'+o.fg+'">'+ scale(o.temp) +
+    '<div class="top"><span>'+o.eyebrow+'</span><b>'+o.since+'</b></div>'+
+    '<div class="city">'+esc(o.city)+'</div>'+
+    '<div class="temp">'+fmt(o.temp)+'<span>°C</span></div>'+
+    '<div class="quip">'+esc(o.quip)+'</div>'+
+    '<div class="meta"><button class="pick" data-pick="1" aria-label="비교할 도시 바꾸기">'+
+      '<u>'+esc(shortName(base))+'<em>⌄</em></u></button><span>'+right+'</span></div>'+
+    (o.hint ? '<div class="hint" aria-hidden="true">⌄</div>' : '')+
+    (o.credit ? '<div class="credit">'+o.credit+'</div>' : '')+
+  '</div>';
+}
+
+function render(){
+  if(!data) return;
+  var all = data.world.concat(data.korea);
+  var baseRow = all.filter(function(r){return r[0] === base;})[0];
+  if(!baseRow){ base = BASE_DEFAULT; baseRow = all.filter(function(r){return r[0] === base;})[0] || [BASE_DEFAULT,0]; }
+  var bt = baseRow[1];
+
+  var wHot = maxOf(data.world), wCold = minOf(data.world);
+  var kHot = maxOf(data.korea), kCold = minOf(data.korea);
+  var mon = new Date().getMonth() + 1;
+
+  var kHotQ = KOR_HOT_QUIP[kHot[0]] || '오늘 전기요금 1등';
+  var kColdQ = KOR_COLD_QUIP.hasOwnProperty(kCold[0])
+    ? (KOR_COLD_QUIP[kCold[0]] || mon + '월인데요') : '혼자 계절이 다릅니다';
+
+  var seen = new Date(data.at);
+  var clock = isNaN(seen) ? '알 수 없음'
+    : seen.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  var credit = '최근 확인 '+clock+' · 도시 '+(data.world.length+data.korea.length)+'곳 중 · '+
+    '<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> '+
+    '<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>';
+
+  var app = document.getElementById('app'), y = app.scrollTop;
+  app.innerHTML =
+    '<section class="screen">'+
+      half({bg:'var(--hot)',fg:'var(--hotT)',baseTemp:bt,
+        eyebrow:'🔥 지금 지구에서 제일 더운 곳', city:wHot[0], temp:wHot[1],
+        quip:'거긴 왜 사세요?', since:elapsed(keepThrone('wh',wHot[0]))}) +
+      half({bg:'var(--cold)',fg:'var(--coldT)',baseTemp:bt,hint:true,
+        eyebrow:'❄️ 지금 지구에서 제일 추운 곳', city:wCold[0], temp:wCold[1],
+        quip:'거기도 왜 사세요?', since:elapsed(keepThrone('wc',wCold[0]))}) +
+    '</section>'+
+    '<section class="screen">'+
+      half({bg:'var(--korHot)',fg:'var(--dark)',baseTemp:bt,
+        eyebrow:'🇰🇷 지금 한국에서 제일 더운 곳', city:kHot[0], temp:kHot[1],
+        quip:kHotQ, since:elapsed(keepThrone('kh',kHot[0]))}) +
+      half({bg:'var(--korCold)',fg:'var(--dark)',baseTemp:bt,credit:credit,
+        eyebrow:'🇰🇷 지금 한국에서 제일 추운 곳', city:kCold[0], temp:kCold[1],
+        quip:kColdQ, since:elapsed(keepThrone('kc',kCold[0]))}) +
+    '</section>';
+  app.scrollTop = y;
+}
+
+/* ── 도시 고르기 ────────────────────────────────────────── */
+function opt(name){
+  return '<button class="opt" data-city="'+esc(name)+'"><span>'+esc(shortName(name))+'</span>'+
+         (name === base ? '<b>✓</b>' : '') + '</button>';
+}
+function openSheet(){
+  var html = '<div class="grp">🇰🇷 한국</div>' +
+    data.korea.map(function(r){ return opt(r[0]); }).join('');
+  var have = {};
+  data.world.forEach(function(r){ have[r[0]] = 1; });
+  html += '<div class="grp">🌏 다른 나라</div>' + OVERSEAS.map(function(g){
+    var list = g[1].filter(function(n){ return have[n]; });
+    if(!list.length) return '';
+    var open = list.indexOf(base) >= 0 ? ' open' : '';
+    return '<details'+open+'><summary>'+g[0]+'</summary>'+ list.map(opt).join('') +'</details>';
+  }).join('');
+  document.getElementById('opts').innerHTML = html;
+  document.getElementById('sheet').classList.add('on');
+}
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); }
+
+document.addEventListener('click', function(e){
+  if(!e.target.closest) return;
+  if(e.target.closest('[data-pick]')){ openSheet(); return; }
+  var o = e.target.closest('[data-city]');
+  if(o){ base = o.getAttribute('data-city'); lsSet('base', base); closeSheet(); render(); return; }
+  if(e.target.className === 'bg') closeSheet();
+});
+
+/* ── 실행 ───────────────────────────────────────────────── */
+async function load(){
+  try{
+    var bust = Math.floor(Date.now()/(5*60*1000));
+    var res = await fetch(DATA_URL + (DATA_URL.indexOf('?')<0 ? '?' : '&') + 'v=' + bust);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    var j = await res.json();
+    if(!j.world || !j.world.length || !j.korea || !j.korea.length) throw new Error('empty');
+    data = j; live = true; lsSet('last', j);
+    document.getElementById('banner').style.display = 'none';
+  }catch(e){
+    if(!live){
+      data = lsGet('last') || SAMPLE;
+      document.getElementById('banner').style.display = 'block';
+    }
+  }
+  render();
+}
+
+load();
+setInterval(load, POLL_MS);
+setInterval(render, 30*1000);
+</script>
+</body>
+</html>

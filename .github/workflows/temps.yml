@@ -1,0 +1,35 @@
+# .github/workflows/temps.yml 로 두세요.
+# 정각은 GitHub 스케줄러가 가장 붐비는 시각이라 3분씩 밀어두었습니다.
+name: temps
+
+on:
+  schedule:
+    - cron: "3,13,23,33,43,53 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temps
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: node fetch.mjs
+
+      - name: commit
+        run: |
+          git config user.name "dupnya-bot"
+          git config user.email "dupnya-bot@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet && exit 0
+          git commit -m "temps $(date -u +%H:%M)"
+          git push
